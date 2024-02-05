@@ -1,9 +1,9 @@
 # React Use Action Cable
-Hooks to use Rails Action Cable in your React (Native) application.
+Hooks to use Rails Action Cable in your React application.
 
 ## Installation
 ```bash
-npm install @aersoftware/react-use-action-cable --save
+npm i react-use-action-cable-ts
 ```
 
 ## Usage
@@ -12,7 +12,7 @@ npm install @aersoftware/react-use-action-cable --save
 To connect to an Action Cable, simply call the useActionCable hook with the URL you wish to connect to. If you want to be able to use this Action Cable throughout your application consider implementing it in a [context](https://reactjs.org/docs/context.html).
 ```js
 import React, { useEffect } from 'react';
-import { useActionCable, useChannel } from '@aersoftware/react-use-action-cable';
+import { useActionCable, useChannel } from 'react-use-action-cable-ts';
 
 export default function index() {
   const { actionCable } = useActionCable('ws://localhost:3000/cable');
