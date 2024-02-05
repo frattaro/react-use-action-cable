@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState, useRef } from "react";
 import {
   ChannelNameWithParams,
   Consumer,
   Subscription,
-  createConsumer,
+  createConsumer
 } from "@rails/actioncable";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Action = Parameters<Subscription<Consumer>["perform"]>[0];
 type Payload = Parameters<Subscription<Consumer>["perform"]>[1];
@@ -27,25 +27,25 @@ export function useActionCable(url: string, { verbose } = { verbose: false }) {
     log({
       verbose: verbose,
       type: "info",
-      message: "Created Action Cable",
+      message: "Created Action Cable"
     });
     return () => {
       log({
         verbose: verbose,
         type: "info",
-        message: "Disconnected Action Cable",
+        message: "Disconnected Action Cable"
       });
       actionCable.disconnect();
     };
   }, []);
   return {
-    actionCable,
+    actionCable
   };
 }
 
-export function useChannel(
+export function useChannel<T>(
   actionCable: Consumer,
-  { verbose } = { verbose: false },
+  { verbose } = { verbose: false }
 ) {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [connected, setConnected] = useState(false);
@@ -62,23 +62,23 @@ export function useChannel(
   const subscribe = (
     data: ChannelNameWithParams,
     callbacks: {
-      received: (x: any) => void;
+      received: (x: T) => void;
       initialized: () => void;
       connected: () => void;
       disconnected: () => void;
-    },
+    }
   ) => {
     log({
       verbose: verbose,
       type: "info",
-      message: `Connecting to ${data.channel}`,
+      message: `Connecting to ${data.channel}`
     });
     const channel = actionCable.subscriptions.create(data, {
       received: (x) => {
         log({
           verbose: verbose,
           type: "info",
-          message: `Received ${JSON.stringify(x)}`,
+          message: `Received ${JSON.stringify(x)}`
         });
         if (callbacks.received) callbacks.received(x);
       },
@@ -86,7 +86,7 @@ export function useChannel(
         log({
           verbose: verbose,
           type: "info",
-          message: `Init ${data.channel}`,
+          message: `Init ${data.channel}`
         });
         setSubscribed(true);
         if (callbacks.initialized) callbacks.initialized();
@@ -95,7 +95,7 @@ export function useChannel(
         log({
           verbose: verbose,
           type: "info",
-          message: `Connected to ${data.channel}`,
+          message: `Connected to ${data.channel}`
         });
         setConnected(true);
         if (callbacks.connected) callbacks.connected();
@@ -104,11 +104,11 @@ export function useChannel(
         log({
           verbose: verbose,
           type: "info",
-          message: `Disconnected`,
+          message: `Disconnected`
         });
         setConnected(false);
         if (callbacks.disconnected) callbacks.disconnected();
-      },
+      }
     });
     channelRef.current = channel;
   };
@@ -120,7 +120,7 @@ export function useChannel(
       log({
         verbose: verbose,
         type: "info",
-        message: `Unsubscribing from ${channelRef.current.identifier}`,
+        message: `Unsubscribing from ${channelRef.current.identifier}`
       });
       // @ts-ignore
       actionCable.subscriptions.remove(channelRef.current);
@@ -135,7 +135,7 @@ export function useChannel(
       log({
         verbose: verbose,
         type: "info",
-        message: `Queue paused. Subscribed: ${subscribed}. Connected: ${connected}. Queue length: ${queue.length}`,
+        message: `Queue paused. Subscribed: ${subscribed}. Connected: ${connected}. Queue length: ${queue.length}`
       });
     }
   }, [queue[0], connected, subscribed]);
@@ -146,7 +146,7 @@ export function useChannel(
     try {
       perform(action.action, action.payload);
       setQueue((prevState) => {
-        let q = [...prevState];
+        const q = [...prevState];
         q.shift();
         return q;
       });
@@ -154,7 +154,7 @@ export function useChannel(
       log({
         verbose: verbose,
         type: "warn",
-        message: `Unable to perform action '${action.action}'. It will stay at the front of the queue.`,
+        message: `Unable to perform action '${action.action}'. It will stay at the front of the queue.`
       });
     }
   };
@@ -163,14 +163,14 @@ export function useChannel(
     log({
       verbose: verbose,
       type: "info",
-      message: `Adding action to queue - ${action}: ${JSON.stringify(payload)}`,
+      message: `Adding action to queue - ${action}: ${JSON.stringify(payload)}`
     });
     setQueue((prevState) => [
       ...prevState,
       {
         action,
-        payload,
-      },
+        payload
+      }
     ]);
   };
 
@@ -181,7 +181,7 @@ export function useChannel(
       log({
         verbose: verbose,
         type: "info",
-        message: `Sending ${action} with payload ${JSON.stringify(payload)}`,
+        message: `Sending ${action} with payload ${JSON.stringify(payload)}`
       });
       channelRef.current?.perform(action, payload);
     } catch {
@@ -192,7 +192,7 @@ export function useChannel(
   const send = ({
     action,
     payload,
-    useQueue,
+    useQueue
   }: {
     action: Action;
     payload: Payload;
@@ -208,6 +208,6 @@ export function useChannel(
   return {
     subscribe,
     unsubscribe,
-    send,
+    send
   };
 }
