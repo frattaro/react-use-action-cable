@@ -62,10 +62,10 @@ export function useChannel<T>(
   const subscribe = (
     data: ChannelNameWithParams,
     callbacks: {
-      received: (x: T) => void;
-      initialized: () => void;
-      connected: () => void;
-      disconnected: () => void;
+      received?: (x: T) => void;
+      initialized?: () => void;
+      connected?: () => void;
+      disconnected?: () => void;
     }
   ) => {
     log({
@@ -80,7 +80,7 @@ export function useChannel<T>(
           type: "info",
           message: `Received ${JSON.stringify(x)}`
         });
-        if (callbacks.received) callbacks.received(x);
+        callbacks.received?.(x);
       },
       initialized: () => {
         log({
@@ -89,7 +89,7 @@ export function useChannel<T>(
           message: `Init ${data.channel}`
         });
         setSubscribed(true);
-        if (callbacks.initialized) callbacks.initialized();
+        callbacks.initialized?.();
       },
       connected: () => {
         log({
@@ -98,7 +98,7 @@ export function useChannel<T>(
           message: `Connected to ${data.channel}`
         });
         setConnected(true);
-        if (callbacks.connected) callbacks.connected();
+        callbacks.connected?.();
       },
       disconnected: () => {
         log({
@@ -107,7 +107,7 @@ export function useChannel<T>(
           message: `Disconnected`
         });
         setConnected(false);
-        if (callbacks.disconnected) callbacks.disconnected();
+        callbacks.disconnected?.();
       }
     });
     channelRef.current = channel;

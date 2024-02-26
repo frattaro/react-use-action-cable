@@ -1,6 +1,6 @@
 {
   "name": "react-use-action-cable-ts",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Hooks to easily use Rails Action Cable in your React application",
   "main": "dist/index.js",
   "scripts": {
