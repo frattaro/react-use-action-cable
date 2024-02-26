@@ -102,7 +102,7 @@ test("should immediately process the first action added to the queue when there 
     });
   });
 
-  expect(perform).toBeCalledTimes(1);
+  expect(perform).toHaveBeenCalledTimes(1);
 });
 
 test("should immediately send a message to the channel when the queue is not used", () => {
@@ -119,7 +119,7 @@ test("should immediately send a message to the channel when the queue is not use
     });
   });
 
-  expect(perform).toBeCalledTimes(1);
+  expect(perform).toHaveBeenCalledTimes(1);
 });
 
 test("should throw an error when sending a message without using the queue when not subscribed to a channel", () => {
