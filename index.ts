@@ -83,7 +83,7 @@ export function useChannel<T>(
           type: "info",
           message: `Received ${JSON.stringify(x)}`
         });
-        if (camelCaseMessage) {
+        if (camelCaseMessage && x) {
           x = camelcaseKeys(x, { deep: true });
         }
         callbacks.received?.(x);
@@ -206,9 +206,10 @@ export function useChannel<T>(
     useQueue: boolean;
     snakeCaseMessage: boolean;
   }) => {
-    const formattedPayload = snakeCaseMessage
-      ? snakecaseKeys(payload as Record<string, unknown>, { deep: true })
-      : payload;
+    const formattedPayload =
+      snakeCaseMessage && payload
+        ? snakecaseKeys(payload as Record<string, unknown>, { deep: true })
+        : payload;
     if (useQueue) {
       enqueue(action, formattedPayload);
     } else {

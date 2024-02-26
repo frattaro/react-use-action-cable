@@ -7,6 +7,9 @@ import React from "react";
 
 import { useActionCable, useChannel } from ".";
 
+jest.mock("camelcase-keys", () => jest.fn().mockReturnValue("camel cased"));
+jest.mock("snakecase-keys", () => jest.fn().mockReturnValue("snake cased"));
+
 jest.mock("@rails/actioncable", () => ({
   createConsumer: () => {
     return {
