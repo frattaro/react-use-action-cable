@@ -4,7 +4,9 @@ import {
   Subscription,
   createConsumer
 } from "@rails/actioncable";
+import camelcaseKeys from "camelcase-keys";
 import { useEffect, useMemo, useRef, useState } from "react";
+import snakecaseKeys from "snakecase-keys";
 
 type Action = Parameters<Subscription<Consumer>["perform"]>[0];
 type Payload = Parameters<Subscription<Consumer>["perform"]>[1];
@@ -66,7 +68,8 @@ export function useChannel<T>(
       initialized?: () => void;
       connected?: () => void;
       disconnected?: () => void;
-    }
+    },
+    camelCaseMessage: boolean = true
   ) => {
     log({
       verbose: verbose,
@@ -80,6 +83,9 @@ export function useChannel<T>(
           type: "info",
           message: `Received ${JSON.stringify(x)}`
         });
+        if (camelCaseMessage) {
+          x = camelcaseKeys(x, { deep: true });
+        }
         callbacks.received?.(x);
       },
       initialized: () => {
@@ -192,16 +198,21 @@ export function useChannel<T>(
   const send = ({
     action,
     payload,
-    useQueue
+    useQueue,
+    snakeCaseMessage = true
   }: {
     action: Action;
     payload: Payload;
     useQueue: boolean;
+    snakeCaseMessage: boolean;
   }) => {
+    const formattedPayload = snakeCaseMessage
+      ? snakecaseKeys(payload as Record<string, unknown>, { deep: true })
+      : payload;
     if (useQueue) {
-      enqueue(action, payload);
+      enqueue(action, formattedPayload);
     } else {
-      perform(action, payload);
+      perform(action, formattedPayload);
     }
   };
 
