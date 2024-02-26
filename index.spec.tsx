@@ -5,7 +5,7 @@ import { ChannelNameWithParams, Consumer } from "@rails/actioncable";
 import { act, render } from "@testing-library/react";
 import React from "react";
 
-import { useActionCable, useChannel } from ".";
+import { useActionCable, useChannel } from "./index";
 
 jest.mock("camelcase-keys", () => jest.fn().mockReturnValue("camel cased"));
 jest.mock("snakecase-keys", () => jest.fn().mockReturnValue("snake cased"));
