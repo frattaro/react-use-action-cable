@@ -1,9 +1,10 @@
 {
   "name": "react-use-action-cable-ts",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Hooks to easily use Rails Action Cable in your React application",
   "type": "module",
   "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "npm run clean && tsc",
     "clean": "rimraf dist",
