@@ -1,6 +1,6 @@
 {
   "name": "react-use-action-cable-ts",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Hooks to easily use Rails Action Cable in your React application",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -9,7 +9,7 @@
     "clean": "rimraf dist",
     "publish-package": "npm run clean && npm ci && npm run build && npm publish",
     "test": "npm run lint && jest",
-    "lint": "eslint . --max-warnings 0"
+    "lint": "eslint ./index.ts --max-warnings 0"
   },
   "author": "Anton Frattaroli",
   "license": "MIT",

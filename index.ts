@@ -6,15 +6,15 @@ import {
 } from "@rails/actioncable";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-type Action = Parameters<Subscription<Consumer>["perform"]>[0];
-type Payload = Parameters<Subscription<Consumer>["perform"]>[1];
+type Action = Parameters<Subscription["perform"]>[0];
+type Payload = Parameters<Subscription["perform"]>[1];
 type QueueItem = {
   action: Action;
   payload: Payload;
 };
 
 const log = (x: {
-  verbose: boolean;
+  verbose?: boolean;
   type: "info" | "warn";
   message: string;
 }) => {
@@ -44,18 +44,18 @@ export function useActionCable(url: string, { verbose } = { verbose: false }) {
 }
 
 export type ChannelOptions = {
-  verbose: boolean;
-  incomingTransformer?: <T>(incomingData: T) => T;
-  outgoingTransformer?: <T>(outgoingData: T) => T;
+  verbose?: boolean;
+  incomingTransformer?: <T extends Payload | ChannelNameWithParams>(
+    incomingData: T
+  ) => T extends ChannelNameWithParams ? ChannelNameWithParams : Payload;
+  outgoingTransformer?: <T extends Payload | ChannelNameWithParams>(
+    outgoingData: T
+  ) => T extends ChannelNameWithParams ? ChannelNameWithParams : Payload;
 };
 
 export function useChannel<T>(
   actionCable: Consumer,
-  { verbose, incomingTransformer, outgoingTransformer }: ChannelOptions = {
-    verbose: false,
-    incomingTransformer: null,
-    outgoingTransformer: null
-  }
+  { verbose, incomingTransformer, outgoingTransformer }: ChannelOptions = {}
 ) {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [connected, setConnected] = useState(false);
@@ -88,7 +88,7 @@ export function useChannel<T>(
       {
         received: (x) => {
           log({
-            verbose: verbose,
+            verbose,
             type: "info",
             message: `Received ${JSON.stringify(x)}`
           });
@@ -191,8 +191,8 @@ export function useChannel<T>(
   };
 
   const perform = (action: Action, payload: Payload) => {
-    if (subscribed && !connected) throw "useActionCable: not connected";
-    if (!subscribed) throw "useActionCable: not subscribed";
+    if (subscribed && !connected) throw Error("useActionCable: not connected");
+    if (!subscribed) throw Error("useActionCable: not subscribed");
     try {
       log({
         verbose: verbose,
@@ -201,7 +201,7 @@ export function useChannel<T>(
       });
       channelRef.current?.perform(action, payload);
     } catch {
-      throw "useActionCable: Unknown error";
+      throw Error("useActionCable: Unknown error");
     }
   };
 
