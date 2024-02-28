@@ -45,8 +45,8 @@ export function useActionCable(url: string, { verbose } = { verbose: false }) {
 
 export type ChannelOptions = {
   verbose: boolean;
-  incomingTransformer?: null | ((incomingData: Payload) => Payload);
-  outgoingTransformer?: null | ((outgoingData: Payload) => Payload);
+  incomingTransformer?: <T>(incomingData: T) => T;
+  outgoingTransformer?: <T>(outgoingData: T) => T;
 };
 
 export function useChannel<T>(
@@ -83,46 +83,49 @@ export function useChannel<T>(
       type: "info",
       message: `Connecting to ${data.channel}`
     });
-    const channel = actionCable.subscriptions.create(data, {
-      received: (x) => {
-        log({
-          verbose: verbose,
-          type: "info",
-          message: `Received ${JSON.stringify(x)}`
-        });
-        if (incomingTransformer && x) {
-          x = incomingTransformer(x);
+    const channel = actionCable.subscriptions.create(
+      outgoingTransformer?.(data) || data,
+      {
+        received: (x) => {
+          log({
+            verbose: verbose,
+            type: "info",
+            message: `Received ${JSON.stringify(x)}`
+          });
+          if (incomingTransformer && x) {
+            x = incomingTransformer(x);
+          }
+          callbacks.received?.(x);
+        },
+        initialized: () => {
+          log({
+            verbose: verbose,
+            type: "info",
+            message: `Init ${data.channel}`
+          });
+          setSubscribed(true);
+          callbacks.initialized?.();
+        },
+        connected: () => {
+          log({
+            verbose: verbose,
+            type: "info",
+            message: `Connected to ${data.channel}`
+          });
+          setConnected(true);
+          callbacks.connected?.();
+        },
+        disconnected: () => {
+          log({
+            verbose: verbose,
+            type: "info",
+            message: `Disconnected`
+          });
+          setConnected(false);
+          callbacks.disconnected?.();
         }
-        callbacks.received?.(x);
-      },
-      initialized: () => {
-        log({
-          verbose: verbose,
-          type: "info",
-          message: `Init ${data.channel}`
-        });
-        setSubscribed(true);
-        callbacks.initialized?.();
-      },
-      connected: () => {
-        log({
-          verbose: verbose,
-          type: "info",
-          message: `Connected to ${data.channel}`
-        });
-        setConnected(true);
-        callbacks.connected?.();
-      },
-      disconnected: () => {
-        log({
-          verbose: verbose,
-          type: "info",
-          message: `Disconnected`
-        });
-        setConnected(false);
-        callbacks.disconnected?.();
       }
-    });
+    );
     channelRef.current = channel;
   };
 
