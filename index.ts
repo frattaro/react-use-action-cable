@@ -4,9 +4,7 @@ import {
   Subscription,
   createConsumer
 } from "@rails/actioncable";
-import camelcaseKeys from "camelcase-keys";
 import { useEffect, useMemo, useRef, useState } from "react";
-import snakecaseKeys from "snakecase-keys";
 
 type Action = Parameters<Subscription<Consumer>["perform"]>[0];
 type Payload = Parameters<Subscription<Consumer>["perform"]>[1];
@@ -45,9 +43,19 @@ export function useActionCable(url: string, { verbose } = { verbose: false }) {
   };
 }
 
+export type ChannelOptions = {
+  verbose: boolean;
+  incomingTransformer?: null | ((incomingData: Payload) => Payload);
+  outgoingTransformer?: null | ((outgoingData: Payload) => Payload);
+};
+
 export function useChannel<T>(
   actionCable: Consumer,
-  { verbose } = { verbose: false }
+  { verbose, incomingTransformer, outgoingTransformer }: ChannelOptions = {
+    verbose: false,
+    incomingTransformer: null,
+    outgoingTransformer: null
+  }
 ) {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [connected, setConnected] = useState(false);
@@ -68,8 +76,7 @@ export function useChannel<T>(
       initialized?: () => void;
       connected?: () => void;
       disconnected?: () => void;
-    },
-    camelCaseMessage: boolean = true
+    }
   ) => {
     log({
       verbose: verbose,
@@ -83,8 +90,8 @@ export function useChannel<T>(
           type: "info",
           message: `Received ${JSON.stringify(x)}`
         });
-        if (camelCaseMessage && x) {
-          x = camelcaseKeys(x, { deep: true });
+        if (incomingTransformer && x) {
+          x = incomingTransformer(x);
         }
         callbacks.received?.(x);
       },
@@ -198,18 +205,14 @@ export function useChannel<T>(
   const send = ({
     action,
     payload,
-    useQueue,
-    snakeCaseMessage = true
+    useQueue
   }: {
     action: Action;
     payload: Payload;
     useQueue: boolean;
-    snakeCaseMessage: boolean;
   }) => {
     const formattedPayload =
-      snakeCaseMessage && payload
-        ? snakecaseKeys(payload as Record<string, unknown>, { deep: true })
-        : payload;
+      outgoingTransformer && payload ? outgoingTransformer(payload) : payload;
     if (useQueue) {
       enqueue(action, formattedPayload);
     } else {
