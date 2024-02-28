@@ -7,9 +7,6 @@ import React from "react";
 
 import { useActionCable, useChannel } from "./index";
 
-jest.mock("camelcase-keys", () => jest.fn().mockReturnValue("camel cased"));
-jest.mock("snakecase-keys", () => jest.fn().mockReturnValue("snake cased"));
-
 jest.mock("@rails/actioncable", () => ({
   createConsumer: () => {
     return {
@@ -63,7 +60,10 @@ function setup({
       remove: jest.fn()
     }
   };
-  const channel: jest.Mocked<
+  const channel1: jest.Mocked<
+    Partial<ReturnType<Consumer["subscriptions"]["create"]>>
+  > = {};
+  const channel2: jest.Mocked<
     Partial<ReturnType<Consumer["subscriptions"]["create"]>>
   > = {};
 
@@ -71,34 +71,58 @@ function setup({
     Object.assign(cable, {
       ...useActionCable("url", verbose ? { verbose: true } : undefined)
     });
-    Object.assign(channel, {
-      ...useChannel(cable, verbose ? { verbose: true } : undefined)
+    Object.assign(channel1, {
+      ...useChannel(cable, {
+        verbose,
+        incomingTransformer: (x) => x,
+        outgoingTransformer: (x) => x
+      })
+    });
+    Object.assign(channel2, {
+      ...useChannel(cable)
     });
     return null;
   };
 
   render(React.createElement(TestComponent));
-  return { cable, channel };
+  return { cable, channel1, channel2 };
 }
 
 beforeEach(() => jest.clearAllMocks());
 
 test("should connect to a channel", () => {
-  const { cable, channel } = setup();
+  const { cable, channel1 } = setup();
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel1.subscribe({ channel: "TestChannel" }, {});
   });
-  expect(cable.subscriptions.create).toBeCalledTimes(1);
+  expect(cable.subscriptions.create).toHaveBeenCalledTimes(1);
 });
 
 test("should immediately process the first action added to the queue when there is a connection to the channel", () => {
-  const { channel } = setup();
+  const { channel1 } = setup();
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel1.subscribe({ channel: "TestChannel" }, {});
   });
 
   act(() => {
-    channel.send?.({
+    channel1.send?.({
+      action: "ping",
+      payload: {},
+      useQueue: true
+    });
+  });
+
+  expect(perform).toHaveBeenCalledTimes(1);
+});
+
+test("should immediately process the first action added to the queue when there is a connection to the channel (no transformer)", () => {
+  const { channel2 } = setup();
+  act(() => {
+    channel2.subscribe({ channel: "TestChannel" }, {});
+  });
+
+  act(() => {
+    channel2.send?.({
       action: "ping",
       payload: {},
       useQueue: true
@@ -109,13 +133,13 @@ test("should immediately process the first action added to the queue when there 
 });
 
 test("should immediately send a message to the channel when the queue is not used", () => {
-  const { channel } = setup();
+  const { channel1 } = setup();
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel1.subscribe({ channel: "TestChannel" }, {});
   });
 
   act(() => {
-    channel.send?.({
+    channel1.send?.({
       action: "ping",
       payload: {},
       useQueue: false
@@ -126,10 +150,10 @@ test("should immediately send a message to the channel when the queue is not use
 });
 
 test("should throw an error when sending a message without using the queue when not subscribed to a channel", () => {
-  const { channel } = setup();
+  const { channel1 } = setup();
 
   expect(() => {
-    channel.send?.({
+    channel1.send?.({
       action: "ping",
       payload: {},
       useQueue: false
@@ -138,14 +162,14 @@ test("should throw an error when sending a message without using the queue when 
 });
 
 test("should throw an error when sending a message without using the queue when not connected to a channel", () => {
-  const { channel } = setup({ connected: false });
+  const { channel1 } = setup({ connected: false });
 
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel1.subscribe({ channel: "TestChannel" }, {});
   });
 
   expect(() => {
-    channel.send?.({
+    channel1.send?.({
       action: "ping",
       payload: {},
       useQueue: false
@@ -154,14 +178,14 @@ test("should throw an error when sending a message without using the queue when 
 });
 
 test("should throw an unknown error when sending a message when subscribed and connected, but when performing the action fails", () => {
-  const { channel } = setup({ enablePerform: false });
+  const { channel1 } = setup({ enablePerform: false });
 
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel1.subscribe({ channel: "TestChannel" }, {});
   });
 
   expect(() => {
-    channel.send?.({
+    channel1.send?.({
       action: "ping",
       payload: {},
       useQueue: false
@@ -170,7 +194,7 @@ test("should throw an unknown error when sending a message when subscribed and c
 });
 
 test("should execute the provided callbacks", () => {
-  const { channel } = setup({ performCallbacks: true });
+  const { channel1 } = setup({ performCallbacks: true });
 
   const received = jest.fn();
   const initialized = jest.fn();
@@ -178,7 +202,7 @@ test("should execute the provided callbacks", () => {
   const disconnected = jest.fn();
 
   act(() => {
-    channel.subscribe(
+    channel1.subscribe(
       { channel: "TestChannel" },
       {
         received: () => received(),
@@ -189,14 +213,14 @@ test("should execute the provided callbacks", () => {
     );
   });
 
-  expect(received).toBeCalledTimes(1);
-  expect(initialized).toBeCalledTimes(1);
-  expect(connected).toBeCalledTimes(1);
-  expect(disconnected).toBeCalledTimes(1);
+  expect(received).toHaveBeenCalledTimes(1);
+  expect(initialized).toHaveBeenCalledTimes(1);
+  expect(connected).toHaveBeenCalledTimes(1);
+  expect(disconnected).toHaveBeenCalledTimes(1);
 });
 
-test("should execute the provided callbacks 2", () => {
-  const { channel } = setup({ performCallbacks: true });
+test("should execute the provided callbacks (no transformers)", () => {
+  const { channel2 } = setup({ performCallbacks: true });
 
   const received = jest.fn();
   const initialized = jest.fn();
@@ -204,21 +228,47 @@ test("should execute the provided callbacks 2", () => {
   const disconnected = jest.fn();
 
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel2.subscribe(
+      { channel: "TestChannel" },
+      {
+        received: () => received(),
+        initialized: () => initialized(),
+        connected: () => connected(),
+        disconnected: () => disconnected()
+      }
+    );
   });
 
-  expect(received).toBeCalledTimes(0);
-  expect(initialized).toBeCalledTimes(0);
-  expect(connected).toBeCalledTimes(0);
-  expect(disconnected).toBeCalledTimes(0);
+  expect(received).toHaveBeenCalledTimes(1);
+  expect(initialized).toHaveBeenCalledTimes(1);
+  expect(connected).toHaveBeenCalledTimes(1);
+  expect(disconnected).toHaveBeenCalledTimes(1);
+});
+
+test("should execute the provided callbacks 2", () => {
+  const { channel1 } = setup({ performCallbacks: true });
+
+  const received = jest.fn();
+  const initialized = jest.fn();
+  const connected = jest.fn();
+  const disconnected = jest.fn();
+
+  act(() => {
+    channel1.subscribe({ channel: "TestChannel" }, {});
+  });
+
+  expect(received).toHaveBeenCalledTimes(0);
+  expect(initialized).toHaveBeenCalledTimes(0);
+  expect(connected).toHaveBeenCalledTimes(0);
+  expect(disconnected).toHaveBeenCalledTimes(0);
 });
 
 test("should log the correct message when connecting", () => {
-  const { channel } = setup({ verbose: true });
+  const { channel1 } = setup({ verbose: true });
 
   const consoleInfoMock = jest.spyOn(console, "info").mockImplementation();
 
-  act(() => channel.subscribe({ channel: "TestChannel" }, {}));
+  act(() => channel1.subscribe({ channel: "TestChannel" }, {}));
 
   expect(consoleInfoMock.mock.calls[0][0]).toBe(
     "useActionCable: Connecting to TestChannel"
@@ -232,15 +282,15 @@ test("should log the correct message when connecting", () => {
 });
 
 test("should pause the queue when disconnected or not subscribed and the queue length is greater than 0", () => {
-  const { channel } = setup({ connected: false, verbose: true });
+  const { channel1 } = setup({ connected: false, verbose: true });
   const consoleInfoMock = jest.spyOn(console, "info").mockImplementation();
 
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel1.subscribe({ channel: "TestChannel" }, {});
   });
 
   act(() => {
-    channel.send?.({
+    channel1.send?.({
       action: "ping",
       payload: {},
       useQueue: true
@@ -253,15 +303,15 @@ test("should pause the queue when disconnected or not subscribed and the queue l
 });
 
 test("should keep an item at the front of the queue when sending fails", () => {
-  const { channel } = setup({ verbose: true, enablePerform: false });
+  const { channel1 } = setup({ verbose: true, enablePerform: false });
   const consoleWarnMock = jest.spyOn(console, "warn").mockImplementation();
 
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel1.subscribe({ channel: "TestChannel" }, {});
   });
 
   act(() => {
-    channel.send?.({
+    channel1.send?.({
       action: "ping",
       payload: {},
       useQueue: true
