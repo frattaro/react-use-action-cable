@@ -4,7 +4,9 @@ import {
   Subscription,
   createConsumer
 } from "@rails/actioncable";
+import camelcaseKeys from "camelcase-keys";
 import { useEffect, useMemo, useRef, useState } from "react";
+import snakecaseKeys from "snakecase-keys";
 
 type Action = Parameters<Subscription["perform"]>[0];
 type Payload = Parameters<Subscription["perform"]>[1];
@@ -13,28 +15,21 @@ type QueueItem = {
   payload: Payload;
 };
 
-const log = (x: {
+export type ActionCableOptions = {
   verbose?: boolean;
-  type: "info" | "warn";
-  message: string;
-}) => {
-  if (x.verbose) console[x.type](`useActionCable: ${x.message}`);
 };
 
-export function useActionCable(url: string, { verbose } = { verbose: false }) {
+export function useActionCable(
+  url: string,
+  { verbose }: ActionCableOptions = {}
+) {
   const actionCable = useMemo(() => createConsumer(url), []);
   useEffect(() => {
-    log({
-      verbose: verbose,
-      type: "info",
-      message: "Created Action Cable"
-    });
+    verbose && console.info("useActionCable: Created Action Cable");
+
     return () => {
-      log({
-        verbose: verbose,
-        type: "info",
-        message: "Disconnected Action Cable"
-      });
+      verbose && console.info("useActionCable: Disconnected Action Cable");
+
       actionCable.disconnect();
     };
   }, []);
@@ -44,18 +39,18 @@ export function useActionCable(url: string, { verbose } = { verbose: false }) {
 }
 
 export type ChannelOptions = {
-  verbose?: boolean;
-  incomingTransformer?: <T extends Payload | ChannelNameWithParams>(
-    incomingData: T
-  ) => T extends ChannelNameWithParams ? ChannelNameWithParams : Payload;
-  outgoingTransformer?: <T extends Payload | ChannelNameWithParams>(
-    outgoingData: T
-  ) => T extends ChannelNameWithParams ? ChannelNameWithParams : Payload;
+  verbose: boolean;
+  receiveCamelCase: boolean;
+  sendSnakeCase: boolean;
 };
 
 export function useChannel<T>(
   actionCable: Consumer,
-  { verbose, incomingTransformer, outgoingTransformer }: ChannelOptions = {}
+  { verbose, receiveCamelCase, sendSnakeCase }: ChannelOptions = {
+    verbose: false,
+    receiveCamelCase: true,
+    sendSnakeCase: true
+  }
 ) {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [connected, setConnected] = useState(false);
@@ -78,49 +73,29 @@ export function useChannel<T>(
       disconnected?: () => void;
     }
   ) => {
-    log({
-      verbose: verbose,
-      type: "info",
-      message: `Connecting to ${data.channel}`
-    });
+    verbose && console.info(`useChannel: Connecting to ${data.channel}`);
     const channel = actionCable.subscriptions.create(
-      outgoingTransformer?.(data) || data,
+      (sendSnakeCase && snakecaseKeys(data)) || data,
       {
         received: (x) => {
-          log({
-            verbose,
-            type: "info",
-            message: `Received ${JSON.stringify(x)}`
-          });
-          if (incomingTransformer && x) {
-            x = incomingTransformer(x);
+          verbose && console.info(`useChannel: Received ${JSON.stringify(x)}`);
+          if (receiveCamelCase && x) {
+            x = camelcaseKeys(x);
           }
           callbacks.received?.(x);
         },
         initialized: () => {
-          log({
-            verbose: verbose,
-            type: "info",
-            message: `Init ${data.channel}`
-          });
+          verbose && console.info(`useChannel: Init ${data.channel}`);
           setSubscribed(true);
           callbacks.initialized?.();
         },
         connected: () => {
-          log({
-            verbose: verbose,
-            type: "info",
-            message: `Connected to ${data.channel}`
-          });
+          verbose && console.info(`useChannel: Connected to ${data.channel}`);
           setConnected(true);
           callbacks.connected?.();
         },
         disconnected: () => {
-          log({
-            verbose: verbose,
-            type: "info",
-            message: `Disconnected`
-          });
+          verbose && console.info(`useChannel: Disconnected`);
           setConnected(false);
           callbacks.disconnected?.();
         }
@@ -133,11 +108,10 @@ export function useChannel<T>(
     setSubscribed(false);
 
     if (channelRef.current) {
-      log({
-        verbose: verbose,
-        type: "info",
-        message: `Unsubscribing from ${channelRef.current.identifier}`
-      });
+      verbose &&
+        console.info(
+          `useChannel: Unsubscribing from ${channelRef.current.identifier}`
+        );
       // @ts-ignore
       actionCable.subscriptions.remove(channelRef.current);
       channelRef.current = null;
@@ -148,11 +122,10 @@ export function useChannel<T>(
     if (subscribed && connected && queue.length > 0) {
       processQueue();
     } else if ((!subscribed || !connected) && queue.length > 0) {
-      log({
-        verbose: verbose,
-        type: "info",
-        message: `Queue paused. Subscribed: ${subscribed}. Connected: ${connected}. Queue length: ${queue.length}`
-      });
+      verbose &&
+        console.info(
+          `useChannel: Queue paused. Subscribed: ${subscribed}. Connected: ${connected}. Queue length: ${queue.length}`
+        );
     }
   }, [queue[0], connected, subscribed]);
 
@@ -167,20 +140,18 @@ export function useChannel<T>(
         return q;
       });
     } catch {
-      log({
-        verbose: verbose,
-        type: "warn",
-        message: `Unable to perform action '${action.action}'. It will stay at the front of the queue.`
-      });
+      verbose &&
+        console.warn(
+          `useChannel: Unable to perform action '${action.action}'. It will stay at the front of the queue.`
+        );
     }
   };
 
   const enqueue = (action: Action, payload: Payload) => {
-    log({
-      verbose: verbose,
-      type: "info",
-      message: `Adding action to queue - ${action}: ${JSON.stringify(payload)}`
-    });
+    verbose &&
+      console.info(
+        `useChannel: Adding action to queue - ${action}: ${JSON.stringify(payload)}`
+      );
     setQueue((prevState) => [
       ...prevState,
       {
@@ -191,17 +162,16 @@ export function useChannel<T>(
   };
 
   const perform = (action: Action, payload: Payload) => {
-    if (subscribed && !connected) throw Error("useActionCable: not connected");
-    if (!subscribed) throw Error("useActionCable: not subscribed");
+    if (subscribed && !connected) throw Error("useChannel: not connected");
+    if (!subscribed) throw Error("useChannel: not subscribed");
     try {
-      log({
-        verbose: verbose,
-        type: "info",
-        message: `Sending ${action} with payload ${JSON.stringify(payload)}`
-      });
+      verbose &&
+        console.info(
+          `useChannel: Sending ${action} with payload ${JSON.stringify(payload)}`
+        );
       channelRef.current?.perform(action, payload);
     } catch {
-      throw Error("useActionCable: Unknown error");
+      throw Error("useChannel: Unknown error");
     }
   };
 
@@ -215,7 +185,9 @@ export function useChannel<T>(
     useQueue: boolean;
   }) => {
     const formattedPayload =
-      outgoingTransformer && payload ? outgoingTransformer(payload) : payload;
+      sendSnakeCase && payload
+        ? snakecaseKeys(payload as Record<string, unknown>)
+        : payload;
     if (useQueue) {
       enqueue(action, formattedPayload);
     } else {

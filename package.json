@@ -1,6 +1,6 @@
 {
   "name": "react-use-action-cable-ts",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Hooks to easily use Rails Action Cable in your React application",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -24,7 +24,9 @@
     "react": "^17.0.1 || ^18.2.0"
   },
   "dependencies": {
-    "@rails/actioncable": "7.1.3"
+    "@rails/actioncable": "7.1.3",
+    "camelcase-keys": "7.0.2",
+    "snakecase-keys": "6.0.0"
   },
   "devDependencies": {
     "@babel/cli": "7.23.9",
