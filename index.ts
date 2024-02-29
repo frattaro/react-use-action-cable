@@ -75,12 +75,12 @@ export function useChannel<T>(
   ) => {
     verbose && console.info(`useChannel: Connecting to ${data.channel}`);
     const channel = actionCable.subscriptions.create(
-      (sendSnakeCase && snakecaseKeys(data)) || data,
+      (sendSnakeCase && snakecaseKeys(data, { deep: true })) || data,
       {
         received: (x) => {
           verbose && console.info(`useChannel: Received ${JSON.stringify(x)}`);
           if (receiveCamelCase && x) {
-            x = camelcaseKeys(x);
+            x = camelcaseKeys(x, { deep: true });
           }
           callbacks.received?.(x);
         },
@@ -186,7 +186,7 @@ export function useChannel<T>(
   }) => {
     const formattedPayload =
       sendSnakeCase && payload
-        ? snakecaseKeys(payload as Record<string, unknown>)
+        ? snakecaseKeys(payload as Record<string, unknown>, { deep: true })
         : payload;
     if (useQueue) {
       enqueue(action, formattedPayload);
