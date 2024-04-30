@@ -55,9 +55,11 @@ export function useChannel<T>(
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [connected, setConnected] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
-  const channelRef = useRef<ReturnType<
-    Consumer["subscriptions"]["create"]
-  > | null>();
+
+  const channelRef = useRef<ReturnType<Consumer["subscriptions"]["create"]>[]>(
+    []
+  );
+
   useEffect(() => {
     return () => {
       unsubscribe();
@@ -75,7 +77,7 @@ export function useChannel<T>(
   ) => {
     verbose && console.info(`useChannel: Connecting to ${data.channel}`);
     const channel = actionCable.subscriptions.create(
-      (sendSnakeCase && snakecaseKeys(data, { deep: true })) || data,
+      sendSnakeCase ? snakecaseKeys(data, { deep: true }) : data,
       {
         received: (x) => {
           verbose && console.info(`useChannel: Received ${JSON.stringify(x)}`);
@@ -101,21 +103,23 @@ export function useChannel<T>(
         }
       }
     );
-    channelRef.current = channel;
+    channelRef.current = [...channelRef.current, channel];
   };
 
   const unsubscribe = () => {
     setSubscribed(false);
 
-    if (channelRef.current) {
-      verbose &&
-        console.info(
-          `useChannel: Unsubscribing from ${channelRef.current.identifier}`
-        );
-      // @ts-ignore
-      actionCable.subscriptions.remove(channelRef.current);
-      channelRef.current = null;
-    }
+    verbose &&
+      console.info(
+        `useChannel: Unsubscribing from ${channelRef.current.length} channel(s)`
+      );
+
+    channelRef.current.forEach((x) => {
+      // @ts-expect-error
+      actionCable.subscriptions.remove(x);
+    });
+
+    channelRef.current = [];
   };
 
   useEffect(() => {
@@ -167,9 +171,9 @@ export function useChannel<T>(
     try {
       verbose &&
         console.info(
-          `useChannel: Sending ${action} with payload ${JSON.stringify(payload)}`
+          `useChannel: Sending ${action} with payload ${JSON.stringify(payload)} to ${channelRef.current.length} channel(s)`
         );
-      channelRef.current?.perform(action, payload);
+      channelRef.current.forEach((x) => x.perform(action, payload));
     } catch {
       throw Error("useChannel: Unknown error");
     }
