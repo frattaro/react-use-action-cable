@@ -5,7 +5,7 @@ import {
   createConsumer
 } from "@rails/actioncable";
 import camelcaseKeys from "camelcase-keys";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import snakecaseKeys from "snakecase-keys";
 
 type Action = Parameters<Subscription["perform"]>[0];
@@ -55,72 +55,72 @@ export function useChannel<T>(
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [connected, setConnected] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
-
-  const channelRef = useRef<ReturnType<Consumer["subscriptions"]["create"]>[]>(
-    []
-  );
-
+  const channelRef = useRef<ReturnType<
+    Consumer["subscriptions"]["create"]
+  > | null>();
   useEffect(() => {
     return () => {
       unsubscribe();
     };
   }, []);
 
-  const subscribe = (
-    data: ChannelNameWithParams,
-    callbacks: {
-      received?: (x: T) => void;
-      initialized?: () => void;
-      connected?: () => void;
-      disconnected?: () => void;
-    }
-  ) => {
-    verbose && console.info(`useChannel: Connecting to ${data.channel}`);
-    const channel = actionCable.subscriptions.create(
-      sendSnakeCase ? snakecaseKeys(data, { deep: true }) : data,
-      {
-        received: (x) => {
-          verbose && console.info(`useChannel: Received ${JSON.stringify(x)}`);
-          if (receiveCamelCase && x) {
-            x = camelcaseKeys(x, { deep: true });
-          }
-          callbacks.received?.(x);
-        },
-        initialized: () => {
-          verbose && console.info(`useChannel: Init ${data.channel}`);
-          setSubscribed(true);
-          callbacks.initialized?.();
-        },
-        connected: () => {
-          verbose && console.info(`useChannel: Connected to ${data.channel}`);
-          setConnected(true);
-          callbacks.connected?.();
-        },
-        disconnected: () => {
-          verbose && console.info(`useChannel: Disconnected`);
-          setConnected(false);
-          callbacks.disconnected?.();
-        }
+  const subscribe = useCallback(
+    (
+      data: ChannelNameWithParams,
+      callbacks: {
+        received?: (x: T) => void;
+        initialized?: () => void;
+        connected?: () => void;
+        disconnected?: () => void;
       }
-    );
-    channelRef.current = [...channelRef.current, channel];
-  };
+    ) => {
+      verbose && console.info(`useChannel: Connecting to ${data.channel}`);
+      const channel = actionCable.subscriptions.create(
+        sendSnakeCase ? snakecaseKeys(data, { deep: true }) : data,
+        {
+          received: (x) => {
+            verbose &&
+              console.info(`useChannel: Received ${JSON.stringify(x)}`);
+            if (receiveCamelCase && x) {
+              x = camelcaseKeys(x, { deep: true });
+            }
+            callbacks.received?.(x);
+          },
+          initialized: () => {
+            verbose && console.info(`useChannel: Init ${data.channel}`);
+            setSubscribed(true);
+            callbacks.initialized?.();
+          },
+          connected: () => {
+            verbose && console.info(`useChannel: Connected to ${data.channel}`);
+            setConnected(true);
+            callbacks.connected?.();
+          },
+          disconnected: () => {
+            verbose && console.info(`useChannel: Disconnected`);
+            setConnected(false);
+            callbacks.disconnected?.();
+          }
+        }
+      );
+      channelRef.current = channel;
+    },
+    []
+  );
 
-  const unsubscribe = () => {
+  const unsubscribe = useCallback(() => {
     setSubscribed(false);
 
-    verbose &&
-      console.info(
-        `useChannel: Unsubscribing from ${channelRef.current.length} channel(s)`
-      );
-
-    channelRef.current.forEach((x) => {
+    if (channelRef.current) {
+      verbose &&
+        console.info(
+          `useChannel: Unsubscribing from ${channelRef.current.identifier}`
+        );
       // @ts-expect-error
-      actionCable.subscriptions.remove(x);
-    });
-
-    channelRef.current = [];
-  };
+      actionCable.subscriptions.remove(channelRef.current);
+      channelRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (subscribed && connected && queue.length > 0) {
@@ -171,33 +171,36 @@ export function useChannel<T>(
     try {
       verbose &&
         console.info(
-          `useChannel: Sending ${action} with payload ${JSON.stringify(payload)} to ${channelRef.current.length} channel(s)`
+          `useChannel: Sending ${action} with payload ${JSON.stringify(payload)}`
         );
-      channelRef.current.forEach((x) => x.perform(action, payload));
+      channelRef.current?.perform(action, payload);
     } catch {
       throw Error("useChannel: Unknown error");
     }
   };
 
-  const send = ({
-    action,
-    payload,
-    useQueue
-  }: {
-    action: Action;
-    payload: Payload;
-    useQueue: boolean;
-  }) => {
-    const formattedPayload =
-      sendSnakeCase && payload
-        ? snakecaseKeys(payload as Record<string, unknown>, { deep: true })
-        : payload;
-    if (useQueue) {
-      enqueue(action, formattedPayload);
-    } else {
-      perform(action, formattedPayload);
-    }
-  };
+  const send = useCallback(
+    ({
+      action,
+      payload,
+      useQueue
+    }: {
+      action: Action;
+      payload: Payload;
+      useQueue: boolean;
+    }) => {
+      const formattedPayload =
+        sendSnakeCase && payload
+          ? snakecaseKeys(payload as Record<string, unknown>, { deep: true })
+          : payload;
+      if (useQueue) {
+        enqueue(action, formattedPayload);
+      } else {
+        perform(action, formattedPayload);
+      }
+    },
+    []
+  );
 
   return {
     subscribe,
