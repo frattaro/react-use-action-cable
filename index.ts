@@ -179,28 +179,25 @@ export function useChannel<T>(
     }
   };
 
-  const send = useCallback(
-    ({
-      action,
-      payload,
-      useQueue
-    }: {
-      action: Action;
-      payload: Payload;
-      useQueue: boolean;
-    }) => {
-      const formattedPayload =
-        sendSnakeCase && payload
-          ? snakecaseKeys(payload as Record<string, unknown>, { deep: true })
-          : payload;
-      if (useQueue) {
-        enqueue(action, formattedPayload);
-      } else {
-        perform(action, formattedPayload);
-      }
-    },
-    []
-  );
+  const send = ({
+    action,
+    payload,
+    useQueue
+  }: {
+    action: Action;
+    payload: Payload;
+    useQueue: boolean;
+  }) => {
+    const formattedPayload =
+      sendSnakeCase && payload
+        ? snakecaseKeys(payload as Record<string, unknown>, { deep: true })
+        : payload;
+    if (useQueue) {
+      enqueue(action, formattedPayload);
+    } else {
+      perform(action, formattedPayload);
+    }
+  };
 
   return {
     subscribe,
