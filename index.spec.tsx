@@ -1,21 +1,22 @@
 /**
- * @jest-environment jsdom
+ * @vi-environment jsdom
  */
 import { ChannelNameWithParams, Consumer } from "@rails/actioncable";
 import { act, render } from "@testing-library/react";
 import React from "react";
+import { beforeEach, expect, test, vi } from "vitest";
 
 import { useActionCable, useChannel } from "./index";
 
-jest.mock("@rails/actioncable", () => ({
+vi.mock("@rails/actioncable", () => ({
   createConsumer: () => {
     return {
-      disconnect: jest.fn()
+      disconnect: vi.fn()
     };
   }
 }));
 
-const perform = jest.fn();
+const perform = vi.fn();
 
 function setup({
   connected = true,
@@ -24,10 +25,10 @@ function setup({
   verbose = false,
   caseTransforms = true
 } = {}) {
-  const cable: jest.Mocked<Consumer> = {
+  const cable: Consumer = {
     subscriptions: {
       // @ts-ignore
-      create: jest.fn(
+      create: vi.fn(
         (
           data: ChannelNameWithParams,
           callbacks: {
@@ -58,12 +59,10 @@ function setup({
           };
         }
       ),
-      remove: jest.fn()
+      remove: vi.fn()
     }
   };
-  const channel: jest.Mocked<
-    Partial<ReturnType<Consumer["subscriptions"]["create"]>>
-  > = {};
+  const channel: Partial<ReturnType<Consumer["subscriptions"]["create"]>> = {};
 
   const TestComponent = () => {
     Object.assign(cable, {
@@ -89,17 +88,18 @@ function setup({
     return null;
   };
 
-  render(React.createElement(TestComponent));
-  return { cable, channel };
+  const { unmount } = render(React.createElement(TestComponent));
+  return { cable, channel, unmount };
 }
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => vi.clearAllMocks());
 
 test("should connect to a channel", () => {
   const { cable, channel } = setup();
   act(() => {
     channel.subscribe({ channel: "TestChannel" }, {});
   });
+
   expect(cable.subscriptions.create).toHaveBeenCalledTimes(1);
 });
 
@@ -201,10 +201,10 @@ test("should throw an unknown error when sending a message when subscribed and c
 test("should execute the provided callbacks", () => {
   const { channel } = setup({ verbose: true, performCallbacks: true });
 
-  const received = jest.fn();
-  const initialized = jest.fn();
-  const connected = jest.fn();
-  const disconnected = jest.fn();
+  const received = vi.fn();
+  const initialized = vi.fn();
+  const connected = vi.fn();
+  const disconnected = vi.fn();
 
   act(() => {
     channel.subscribe(
@@ -227,10 +227,10 @@ test("should execute the provided callbacks", () => {
 test("should execute the provided callbacks not verbose", () => {
   const { channel } = setup({ performCallbacks: true });
 
-  const received = jest.fn();
-  const initialized = jest.fn();
-  const connected = jest.fn();
-  const disconnected = jest.fn();
+  const received = vi.fn();
+  const initialized = vi.fn();
+  const connected = vi.fn();
+  const disconnected = vi.fn();
 
   act(() => {
     channel.subscribe(
@@ -253,10 +253,10 @@ test("should execute the provided callbacks not verbose", () => {
 test("should execute the provided callbacks not verbose not case transform", () => {
   const { channel } = setup({ performCallbacks: true, caseTransforms: false });
 
-  const received = jest.fn();
-  const initialized = jest.fn();
-  const connected = jest.fn();
-  const disconnected = jest.fn();
+  const received = vi.fn();
+  const initialized = vi.fn();
+  const connected = vi.fn();
+  const disconnected = vi.fn();
 
   act(() => {
     channel.subscribe(
@@ -279,10 +279,10 @@ test("should execute the provided callbacks not verbose not case transform", () 
 test("should execute the provided callbacks 2", () => {
   const { channel } = setup({ performCallbacks: true });
 
-  const received = jest.fn();
-  const initialized = jest.fn();
-  const connected = jest.fn();
-  const disconnected = jest.fn();
+  const received = vi.fn();
+  const initialized = vi.fn();
+  const connected = vi.fn();
+  const disconnected = vi.fn();
 
   act(() => {
     channel.subscribe({ channel: "TestChannel" }, {});
@@ -297,7 +297,7 @@ test("should execute the provided callbacks 2", () => {
 test("should log the correct message when connecting", () => {
   const { channel } = setup({ verbose: true });
 
-  const consoleInfoMock = jest.spyOn(console, "info").mockImplementation();
+  const consoleInfoMock = vi.spyOn(console, "info");
 
   act(() => channel.subscribe({ channel: "TestChannel" }, {}));
 
@@ -312,7 +312,7 @@ test("should log the correct message when connecting", () => {
 
 test("should pause the queue when disconnected or not subscribed and the queue length is greater than 0", () => {
   const { channel } = setup({ connected: false, verbose: true });
-  const consoleInfoMock = jest.spyOn(console, "info").mockImplementation();
+  const consoleInfoMock = vi.spyOn(console, "info");
 
   act(() => {
     channel.subscribe({ channel: "TestChannel" }, {});
@@ -326,14 +326,14 @@ test("should pause the queue when disconnected or not subscribed and the queue l
     });
   });
 
-  expect(consoleInfoMock.mock.calls[4][0]).toBe(
+  expect(consoleInfoMock.mock.calls[3][0]).toBe(
     "useChannel: Queue paused. Subscribed: true. Connected: false. Queue length: 1"
   );
 });
 
 test("should keep an item at the front of the queue when sending fails", () => {
-  const { channel } = setup({ verbose: true, enablePerform: false });
-  const consoleWarnMock = jest.spyOn(console, "warn").mockImplementation();
+  const { channel, unmount } = setup({ verbose: true, enablePerform: false });
+  const consoleWarnMock = vi.spyOn(console, "warn");
 
   act(() => {
     channel.subscribe({ channel: "TestChannel" }, {});
@@ -346,6 +346,12 @@ test("should keep an item at the front of the queue when sending fails", () => {
       useQueue: true
     });
   });
+
+  act(() => {
+    channel.unsubscribe?.();
+  });
+
+  unmount();
 
   expect(consoleWarnMock.mock.calls[0][0]).toBe(
     "useChannel: Unable to perform action 'ping'. It will stay at the front of the queue."
