@@ -26,7 +26,7 @@
   "dependencies": {
     "@rails/actioncable": "7.2.100",
     "camelcase-keys": "7.0.2",
-    "snakecase-keys": "6.0.0"
+    "snakecase-keys": "8.0.1"
   },
   "devDependencies": {
     "@eslint/js": "9.10.0",
