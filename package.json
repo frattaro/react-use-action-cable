@@ -29,7 +29,7 @@
     "snakecase-keys": "6.0.0"
   },
   "devDependencies": {
-    "@babel/cli": "7.23.9",
+    "@babel/cli": "7.25.6",
     "@babel/core": "7.23.9",
     "@babel/preset-env": "7.23.9",
     "@babel/preset-react": "7.23.3",
