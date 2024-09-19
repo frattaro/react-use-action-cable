@@ -45,7 +45,7 @@
     "@typescript-eslint/parser": "8.6.0",
     "babel-jest": "29.7.0",
     "copyfiles": "2.4.1",
-    "eslint": "8.56.0",
+    "eslint": "8.57.1",
     "eslint-config-next": "14.1.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-anti-trojan-source": "1.1.1",
