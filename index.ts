@@ -23,7 +23,7 @@ export function useActionCable(
   url: string,
   { verbose }: ActionCableOptions = {}
 ) {
-  const actionCable = useMemo(() => createConsumer(url), []);
+  const actionCable = useMemo(() => createConsumer(url), [url]);
   useEffect(() => {
     verbose && console.info("useActionCable: Created Action Cable");
 
@@ -32,7 +32,7 @@ export function useActionCable(
 
       actionCable.disconnect();
     };
-  }, []);
+  }, [actionCable, verbose]);
   return {
     actionCable
   };
@@ -58,11 +58,6 @@ export function useChannel<T>(
   const channelRef = useRef<ReturnType<
     Consumer["subscriptions"]["create"]
   > | null>();
-  useEffect(() => {
-    return () => {
-      unsubscribe();
-    };
-  }, []);
 
   const subscribe = useCallback(
     (
@@ -105,7 +100,7 @@ export function useChannel<T>(
       );
       channelRef.current = channel;
     },
-    []
+    [actionCable, receiveCamelCase, sendSnakeCase, verbose]
   );
 
   const unsubscribe = useCallback(() => {
@@ -120,20 +115,26 @@ export function useChannel<T>(
       actionCable.subscriptions.remove(channelRef.current);
       channelRef.current = null;
     }
-  }, []);
+  }, [actionCable, verbose]);
 
-  useEffect(() => {
-    if (subscribed && connected && queue.length > 0) {
-      processQueue();
-    } else if ((!subscribed || !connected) && queue.length > 0) {
-      verbose &&
-        console.info(
-          `useChannel: Queue paused. Subscribed: ${subscribed}. Connected: ${connected}. Queue length: ${queue.length}`
-        );
-    }
-  }, [queue[0], connected, subscribed]);
+  const perform = useCallback(
+    (action: Action, payload: Payload) => {
+      if (subscribed && !connected) throw Error("useChannel: not connected");
+      if (!subscribed) throw Error("useChannel: not subscribed");
+      try {
+        verbose &&
+          console.info(
+            `useChannel: Sending ${action} with payload ${JSON.stringify(payload)}`
+          );
+        channelRef.current?.perform(action, payload);
+      } catch {
+        throw Error("useChannel: Unknown error");
+      }
+    },
+    [connected, subscribed, verbose]
+  );
 
-  const processQueue = () => {
+  const processQueue = useCallback(() => {
     const action = queue[0];
 
     try {
@@ -149,7 +150,24 @@ export function useChannel<T>(
           `useChannel: Unable to perform action '${action.action}'. It will stay at the front of the queue.`
         );
     }
-  };
+  }, [perform, queue, verbose]);
+
+  useEffect(() => {
+    return () => {
+      unsubscribe();
+    };
+  }, [unsubscribe]);
+
+  useEffect(() => {
+    if (subscribed && connected && queue.length > 0) {
+      processQueue();
+    } else if ((!subscribed || !connected) && queue.length > 0) {
+      verbose &&
+        console.info(
+          `useChannel: Queue paused. Subscribed: ${subscribed}. Connected: ${connected}. Queue length: ${queue.length}`
+        );
+    }
+  }, [queue, connected, subscribed, processQueue, verbose]);
 
   const enqueue = (action: Action, payload: Payload) => {
     verbose &&
@@ -163,20 +181,6 @@ export function useChannel<T>(
         payload
       }
     ]);
-  };
-
-  const perform = (action: Action, payload: Payload) => {
-    if (subscribed && !connected) throw Error("useChannel: not connected");
-    if (!subscribed) throw Error("useChannel: not subscribed");
-    try {
-      verbose &&
-        console.info(
-          `useChannel: Sending ${action} with payload ${JSON.stringify(payload)}`
-        );
-      channelRef.current?.perform(action, payload);
-    } catch {
-      throw Error("useChannel: Unknown error");
-    }
   };
 
   const send = ({
