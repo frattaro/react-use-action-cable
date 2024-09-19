@@ -25,10 +25,10 @@ export function useActionCable(
 ) {
   const actionCable = useMemo(() => createConsumer(url), [url]);
   useEffect(() => {
-    verbose && console.info("useActionCable: Created Action Cable");
+    if (verbose) console.info("useActionCable: Created Action Cable");
 
     return () => {
-      verbose && console.info("useActionCable: Disconnected Action Cable");
+      if (verbose) console.info("useActionCable: Disconnected Action Cable");
 
       actionCable.disconnect();
     };
@@ -69,12 +69,12 @@ export function useChannel<T>(
         disconnected?: () => void;
       }
     ) => {
-      verbose && console.info(`useChannel: Connecting to ${data.channel}`);
+      if (verbose) console.info(`useChannel: Connecting to ${data.channel}`);
       const channel = actionCable.subscriptions.create(
         sendSnakeCase ? snakecaseKeys(data, { deep: true }) : data,
         {
           received: (x) => {
-            verbose &&
+            if (verbose)
               console.info(`useChannel: Received ${JSON.stringify(x)}`);
             if (receiveCamelCase && x) {
               x = camelcaseKeys(x, { deep: true });
@@ -82,17 +82,18 @@ export function useChannel<T>(
             callbacks.received?.(x);
           },
           initialized: () => {
-            verbose && console.info(`useChannel: Init ${data.channel}`);
+            if (verbose) console.info(`useChannel: Init ${data.channel}`);
             setSubscribed(true);
             callbacks.initialized?.();
           },
           connected: () => {
-            verbose && console.info(`useChannel: Connected to ${data.channel}`);
+            if (verbose)
+              console.info(`useChannel: Connected to ${data.channel}`);
             setConnected(true);
             callbacks.connected?.();
           },
           disconnected: () => {
-            verbose && console.info(`useChannel: Disconnected`);
+            if (verbose) console.info(`useChannel: Disconnected`);
             setConnected(false);
             callbacks.disconnected?.();
           }
@@ -107,7 +108,7 @@ export function useChannel<T>(
     setSubscribed(false);
 
     if (channelRef.current) {
-      verbose &&
+      if (verbose)
         console.info(
           `useChannel: Unsubscribing from ${channelRef.current.identifier}`
         );
@@ -122,7 +123,7 @@ export function useChannel<T>(
       if (subscribed && !connected) throw Error("useChannel: not connected");
       if (!subscribed) throw Error("useChannel: not subscribed");
       try {
-        verbose &&
+        if (verbose)
           console.info(
             `useChannel: Sending ${action} with payload ${JSON.stringify(payload)}`
           );
@@ -145,7 +146,7 @@ export function useChannel<T>(
         return q;
       });
     } catch {
-      verbose &&
+      if (verbose)
         console.warn(
           `useChannel: Unable to perform action '${action.action}'. It will stay at the front of the queue.`
         );
@@ -162,7 +163,7 @@ export function useChannel<T>(
     if (subscribed && connected && queue.length > 0) {
       processQueue();
     } else if ((!subscribed || !connected) && queue.length > 0) {
-      verbose &&
+      if (verbose)
         console.info(
           `useChannel: Queue paused. Subscribed: ${subscribed}. Connected: ${connected}. Queue length: ${queue.length}`
         );
@@ -170,7 +171,7 @@ export function useChannel<T>(
   }, [queue, connected, subscribed, processQueue, verbose]);
 
   const enqueue = (action: Action, payload: Payload) => {
-    verbose &&
+    if (verbose)
       console.info(
         `useChannel: Adding action to queue - ${action}: ${JSON.stringify(payload)}`
       );

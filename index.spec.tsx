@@ -21,7 +21,8 @@ function setup({
   connected = true,
   enablePerform = true,
   performCallbacks = false,
-  verbose = false
+  verbose = false,
+  caseTransforms = true
 } = {}) {
   const cable: jest.Mocked<Consumer> = {
     subscriptions: {
@@ -66,14 +67,24 @@ function setup({
 
   const TestComponent = () => {
     Object.assign(cable, {
-      ...useActionCable("url", verbose ? { verbose: true } : undefined)
+      ...(verbose
+        ? useActionCable("url", { verbose: true })
+        : useActionCable("url"))
     });
     Object.assign(channel, {
-      ...useChannel(cable, {
-        verbose,
-        receiveCamelCase: true,
-        sendSnakeCase: true
-      })
+      ...(verbose
+        ? useChannel(cable, {
+            verbose,
+            receiveCamelCase: true,
+            sendSnakeCase: true
+          })
+        : !caseTransforms
+          ? useChannel(cable, {
+              verbose: false,
+              receiveCamelCase: false,
+              sendSnakeCase: false
+            })
+          : useChannel(cable))
     });
     return null;
   };
@@ -94,6 +105,23 @@ test("should connect to a channel", () => {
 
 test("should immediately process the first action added to the queue when there is a connection to the channel", () => {
   const { channel } = setup();
+  act(() => {
+    channel.subscribe({ channel: "TestChannel" }, {});
+  });
+
+  act(() => {
+    channel.send?.({
+      action: "ping",
+      payload: {},
+      useQueue: true
+    });
+  });
+
+  expect(perform).toHaveBeenCalledTimes(1);
+});
+
+test("should immediately process the first action added to the queue when there is a connection to the channel no case transform", () => {
+  const { channel } = setup({ caseTransforms: false });
   act(() => {
     channel.subscribe({ channel: "TestChannel" }, {});
   });
@@ -171,7 +199,59 @@ test("should throw an unknown error when sending a message when subscribed and c
 });
 
 test("should execute the provided callbacks", () => {
+  const { channel } = setup({ verbose: true, performCallbacks: true });
+
+  const received = jest.fn();
+  const initialized = jest.fn();
+  const connected = jest.fn();
+  const disconnected = jest.fn();
+
+  act(() => {
+    channel.subscribe(
+      { channel: "TestChannel" },
+      {
+        received: () => received(),
+        initialized: () => initialized(),
+        connected: () => connected(),
+        disconnected: () => disconnected()
+      }
+    );
+  });
+
+  expect(received).toHaveBeenCalledTimes(1);
+  expect(initialized).toHaveBeenCalledTimes(1);
+  expect(connected).toHaveBeenCalledTimes(1);
+  expect(disconnected).toHaveBeenCalledTimes(1);
+});
+
+test("should execute the provided callbacks not verbose", () => {
   const { channel } = setup({ performCallbacks: true });
+
+  const received = jest.fn();
+  const initialized = jest.fn();
+  const connected = jest.fn();
+  const disconnected = jest.fn();
+
+  act(() => {
+    channel.subscribe(
+      { channel: "TestChannel" },
+      {
+        received: () => received(),
+        initialized: () => initialized(),
+        connected: () => connected(),
+        disconnected: () => disconnected()
+      }
+    );
+  });
+
+  expect(received).toHaveBeenCalledTimes(1);
+  expect(initialized).toHaveBeenCalledTimes(1);
+  expect(connected).toHaveBeenCalledTimes(1);
+  expect(disconnected).toHaveBeenCalledTimes(1);
+});
+
+test("should execute the provided callbacks not verbose not case transform", () => {
+  const { channel } = setup({ performCallbacks: true, caseTransforms: false });
 
   const received = jest.fn();
   const initialized = jest.fn();
