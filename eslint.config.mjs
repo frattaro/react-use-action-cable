@@ -6,17 +6,10 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["**/dist/", "**/vite.config.js"]
+    ignores: ["dist/", "vite.config.js", "eslint.config.mjs", ".prettierrc.js"]
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
-  {
-    languageOptions: {
-      parserOptions: {
-        project: "./tsconfig.json"
-      }
-    }
-  },
   pluginSecurity.configs.recommended,
   eslintConfigPrettier,
   eslintPluginPrettierRecommended,
