@@ -64,6 +64,7 @@ export function useChannel<T>(
       data: ChannelNameWithParams,
       callbacks: {
         received?: (x: T) => void;
+        rejected?: () => void;
         initialized?: () => void;
         connected?: () => void;
         disconnected?: () => void;
@@ -73,6 +74,10 @@ export function useChannel<T>(
       const channel = actionCable.subscriptions.create(
         sendSnakeCase ? snakecaseKeys(data, { deep: true }) : data,
         {
+          rejected: () => {
+            if (verbose) console.info(`useChannel: Rejected`);
+            callbacks.rejected?.();
+          },
           received: (x) => {
             if (verbose)
               console.info(`useChannel: Received ${JSON.stringify(x)}`);
