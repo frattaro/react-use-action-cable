@@ -14,3 +14,8 @@ updates:
       types:
         patterns:
           - "@types/*"
+      vite:
+        patterns:
+          - "@vitest/*"
+          - "vitest"
+          - "vite"
