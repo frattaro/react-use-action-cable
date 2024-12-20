@@ -57,7 +57,7 @@ export function useChannel<T>(
   const [subscribed, setSubscribed] = useState(false);
   const channelRef = useRef<ReturnType<
     Consumer["subscriptions"]["create"]
-  > | null>();
+  > | null>(null);
 
   const subscribe = useCallback(
     (
