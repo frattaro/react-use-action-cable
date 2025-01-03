@@ -32,7 +32,7 @@
     "@eslint/js": "9.17.0",
     "@testing-library/dom": "10.4.0",
     "@testing-library/react": "16.1.0",
-    "@trivago/prettier-plugin-sort-imports": "5.2.0",
+    "@trivago/prettier-plugin-sort-imports": "5.2.1",
     "@types/node": "22.10.3",
     "@types/rails__actioncable": "6.1.11",
     "@types/react": "19.0.2",
