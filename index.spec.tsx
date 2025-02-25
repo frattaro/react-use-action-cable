@@ -326,8 +326,6 @@ test("should pause the queue when disconnected or not subscribed and the queue l
     });
   });
 
-  console.log(consoleInfoMock.mock.calls);
-
   expect(consoleInfoMock.mock.calls[3][0]).toBe(
     "useChannel: Queue paused. Subscribed: true. Connected: false. Queue length: 1"
   );
