@@ -12,8 +12,9 @@ updates:
         versions: [">=24.0.0"]
     groups:
       eslint:
-        - "@eslintjs/*"
-        - "eslint"
+        patterns:
+          - "@eslintjs/*"
+          - "eslint"
       typescript-eslint:
         patterns:
           - "@typescript-eslint/*"
