@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@rails/actioncable": "8.0.201",
-    "camelcase-keys": "7.0.2",
+    "camelcase-keys": "10.0.0",
     "snakecase-keys": "9.0.2"
   },
   "devDependencies": {
