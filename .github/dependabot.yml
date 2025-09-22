@@ -11,13 +11,6 @@ updates:
       - dependency-name: "@types/node"
         versions: [">=24.0.0"]
     groups:
-      eslint:
-        patterns:
-          - "@eslintjs/*"
-          - "eslint"
-      typescript-eslint:
-        patterns:
-          - "@typescript-eslint/*"
       types:
         patterns:
           - "@types/*"
