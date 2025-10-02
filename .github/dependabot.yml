@@ -11,6 +11,12 @@ updates:
       - dependency-name: "@types/node"
         versions: [">=24.0.0"]
     groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
       types:
         patterns:
           - "@types/*"
