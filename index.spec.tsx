@@ -62,7 +62,7 @@ function setup({
       remove: vi.fn()
     }
   };
-  const channel: Partial<ReturnType<Consumer["subscriptions"]["create"]>> = {};
+  const channel: Partial<ReturnType<typeof useChannel>> = {};
 
   const TestComponent = () => {
     Object.assign(cable, {
@@ -97,7 +97,7 @@ beforeEach(() => vi.clearAllMocks());
 test("should connect to a channel", () => {
   const { cable, channel } = setup();
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel.subscribe?.({ channel: "TestChannel" }, {});
   });
 
   expect(cable.subscriptions.create).toHaveBeenCalledTimes(1);
@@ -106,7 +106,7 @@ test("should connect to a channel", () => {
 test("should immediately process the first action added to the queue when there is a connection to the channel", () => {
   const { channel } = setup();
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel.subscribe?.({ channel: "TestChannel" }, {});
   });
 
   act(() => {
@@ -123,7 +123,7 @@ test("should immediately process the first action added to the queue when there 
 test("should immediately process the first action added to the queue when there is a connection to the channel no case transform", () => {
   const { channel } = setup({ caseTransforms: false });
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel.subscribe?.({ channel: "TestChannel" }, {});
   });
 
   act(() => {
@@ -140,7 +140,7 @@ test("should immediately process the first action added to the queue when there 
 test("should immediately send a message to the channel when the queue is not used", () => {
   const { channel } = setup();
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel.subscribe?.({ channel: "TestChannel" }, {});
   });
 
   act(() => {
@@ -170,7 +170,7 @@ test("should throw an error when sending a message without using the queue when 
   const { channel } = setup({ connected: false });
 
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel.subscribe?.({ channel: "TestChannel" }, {});
   });
 
   expect(() => {
@@ -186,7 +186,7 @@ test("should throw an unknown error when sending a message when subscribed and c
   const { channel } = setup({ enablePerform: false });
 
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel.subscribe?.({ channel: "TestChannel" }, {});
   });
 
   expect(() => {
@@ -207,7 +207,7 @@ test("should execute the provided callbacks", () => {
   const disconnected = vi.fn();
 
   act(() => {
-    channel.subscribe(
+    channel.subscribe?.(
       { channel: "TestChannel" },
       {
         received: () => received(),
@@ -233,7 +233,7 @@ test("should execute the provided callbacks not verbose", () => {
   const disconnected = vi.fn();
 
   act(() => {
-    channel.subscribe(
+    channel.subscribe?.(
       { channel: "TestChannel" },
       {
         received: () => received(),
@@ -259,7 +259,7 @@ test("should execute the provided callbacks not verbose not case transform", () 
   const disconnected = vi.fn();
 
   act(() => {
-    channel.subscribe(
+    channel.subscribe?.(
       { channel: "TestChannel" },
       {
         received: () => received(),
@@ -285,7 +285,7 @@ test("should execute the provided callbacks 2", () => {
   const disconnected = vi.fn();
 
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel.subscribe?.({ channel: "TestChannel" }, {});
   });
 
   expect(received).toHaveBeenCalledTimes(0);
@@ -299,7 +299,7 @@ test("should log the correct message when connecting", () => {
 
   const consoleInfoMock = vi.spyOn(console, "info");
 
-  act(() => channel.subscribe({ channel: "TestChannel" }, {}));
+  act(() => channel.subscribe?.({ channel: "TestChannel" }, {}));
 
   expect(consoleInfoMock.mock.calls[0][0]).toBe(
     "useChannel: Connecting to TestChannel"
@@ -315,7 +315,7 @@ test("should pause the queue when disconnected or not subscribed and the queue l
   const consoleInfoMock = vi.spyOn(console, "info");
 
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel.subscribe?.({ channel: "TestChannel" }, {});
   });
 
   act(() => {
@@ -326,7 +326,7 @@ test("should pause the queue when disconnected or not subscribed and the queue l
     });
   });
 
-  expect(consoleInfoMock.mock.calls[3][0]).toBe(
+  expect(consoleInfoMock.mock.calls[4][0]).toBe(
     "useChannel: Queue paused. Subscribed: true. Connected: false. Queue length: 1"
   );
 });
@@ -336,7 +336,7 @@ test("should keep an item at the front of the queue when sending fails", () => {
   const consoleWarnMock = vi.spyOn(console, "warn");
 
   act(() => {
-    channel.subscribe({ channel: "TestChannel" }, {});
+    channel.subscribe?.({ channel: "TestChannel" }, {});
   });
 
   act(() => {
