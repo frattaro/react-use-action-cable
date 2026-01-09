@@ -24,7 +24,7 @@
     "react": "^17.0.1 || ^18.2.0 || ^19.0.0"
   },
   "dependencies": {
-    "@rails/actioncable": "8.1.100",
+    "@rails/actioncable": "8.1.200",
     "camelcase-keys": "10.0.1",
     "snakecase-keys": "9.0.2"
   },
