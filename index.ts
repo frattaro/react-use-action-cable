@@ -78,10 +78,11 @@ export function useChannel<T>(
             if (verbose) console.info(`useChannel: Rejected`);
             callbacks.rejected?.();
           },
-          received: (x) => {
+          received: (x: T) => {
             if (verbose)
               console.info(`useChannel: Received ${JSON.stringify(x)}`);
             if (receiveCamelCase && x) {
+              // @ts-expect-error it's okay
               x = camelcaseKeys(x, { deep: true });
             }
             callbacks.received?.(x);
