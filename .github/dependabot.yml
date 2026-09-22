@@ -9,7 +9,7 @@ updates:
       interval: "daily"
     ignore:
       - dependency-name: "@types/node"
-        versions: [">=24.0.0"]
+        versions: [">=25.0.0"]
     groups:
       react:
         patterns:
